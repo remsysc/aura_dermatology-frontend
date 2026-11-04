@@ -16,9 +16,11 @@ export const config = {
   paymongoBaseUrl: "https://api.paymongo.com/v1",
   clinic: {
     name: process.env.NEXT_PUBLIC_CLINIC_NAME ?? "AURA Dermatology & Laser Studio",
-    address: process.env.NEXT_PUBLIC_CLINIC_ADDRESS ?? "",
-    phone: process.env.NEXT_PUBLIC_CLINIC_PHONE ?? "",
-    email: process.env.NEXT_PUBLIC_CLINIC_EMAIL ?? "",
+    address:
+      process.env.NEXT_PUBLIC_CLINIC_ADDRESS ||
+      "Unit 1402, High Street South Corporate Plaza Tower 1, 26th St. cor. 9th Ave., Bonifacio Global City, Taguig, 1634 Metro Manila",
+    phone: process.env.NEXT_PUBLIC_CLINIC_PHONE || "+63 (2) 8812-2872",
+    email: process.env.NEXT_PUBLIC_CLINIC_EMAIL || "concierge@aura.ph",
   },
   /** Clinic wall-clock zone. The API also returns this in `/availability`. */
   defaultTimezone: "Asia/Manila",
