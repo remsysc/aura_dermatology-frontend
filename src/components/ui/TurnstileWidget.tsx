@@ -87,7 +87,6 @@ export function TurnstileWidget({
           },
         });
         widgetIdRef.current = id;
-        setIsReady(true);
       } catch {
         onVerify("turnstile_client_bypass_aura");
       }
