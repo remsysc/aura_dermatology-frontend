@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens: "Clinical Sanctuary". See DESIGN.md for the rationale and the
+ * measured WCAG contrast ratio of every foreground/background pairing.
+ */
+@theme {
+  /* Surfaces */
+  --color-alabaster: #faf8f5;
+  --color-sand: #f2efe9;
+  --color-paper: #ffffff;
+
+  /* Text */
+  --color-ink: #181a19;
+  --color-graphite: #5c6460;
+
+  /* Brand */
+  --color-forest: #1a2e26;
+  --color-sage: #4a6b5d;
+  --color-sage-deep: #3f5d4f;
+  --color-gold: #c5a880; /* decorative only (2.1:1 on alabaster); text uses gold-ink */
+  --color-gold-ink: #7a5c1e;
+  --color-gold-deep: #8a6a25;
+
+  /* Lines */
+  --color-line: #c9c2b5; /* decorative hairlines */
+  --color-field: #8a8f8b; /* interactive control borders (>= 3:1 on paper) */
+
+  /* Feedback */
+  --color-danger: #9b2c2c;
+  --color-danger-wash: #fbecea;
+  --color-success: #24593f;
+  --color-success-wash: #e8f3ec;
+  --color-warning: #7a4b00;
+  --color-warning-wash: #fbf1dc;
+  --color-info: #1f4a5c;
+  --color-info-wash: #e7f1f5;
+
+  --font-display: var(--font-cormorant, "Cormorant Garamond"), "Playfair Display", Georgia, serif;
+  --font-sans: var(--font-jakarta, "Plus Jakarta Sans"), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --shadow-soft: 0 1px 2px rgb(26 46 38 / 0.06), 0 8px 24px -12px rgb(26 46 38 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(26 46 38 / 0.08), 0 18px 40px -16px rgb(26 46 38 / 0.28);
+}
+
+@layer base {
+  html {
+    background: var(--color-alabaster);
+    color: var(--color-ink);
+    scroll-behavior: smooth;
+    scroll-padding-block-start: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--color-forest);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One consistent, high-contrast focus indicator (3:1+ against adjacent colours). */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--color-gold-deep);
+    outline-offset: 3px;
+    border-radius: 0.25rem;
+  }
+
+  /* Brand the native radios / checkboxes rather than replacing them. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-sage-deep);
+  }
+
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-forest);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-gold-ink);
+  }
+
+  .hairline {
+    border-color: var(--color-line);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.skeleton {
+  background: linear-gradient(
+      90deg,
+      var(--color-sand) 25%,
+      var(--color-paper) 37%,
+      var(--color-sand) 63%
+    )
+    0 0 / 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
