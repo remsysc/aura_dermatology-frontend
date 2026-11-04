@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { consumeToken } from "@/lib/magic-token";
+import { consumeToken, clearToken, parseFragmentToken } from "@/lib/magic-token";
 import { getManagedBooking, rescheduleBooking, cancelBooking, getAvailability, requestMagicLink } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { SlotPicker } from "@/components/booking/SlotPicker";
@@ -43,12 +43,20 @@ export default function ManageBookingPage() {
 
   // Consume token on mount
   useEffect(() => {
-    const extracted = consumeToken("manage");
-    if (extracted) {
-      setToken(extracted);
+    // Strict Mode (Option A): Only authenticate if an explicit token fragment (#t=...) was provided in the URL.
+    // If arriving via a generic link (e.g. site footer /manage), never auto-resume from cache.
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    if (hash && parseFragmentToken(hash)) {
+      const extracted = consumeToken("manage");
+      if (extracted) {
+        setToken(extracted);
+        return;
+      }
     } else {
-      setLoading(false);
+      // Direct navigation without a token fragment: clear any cached manage token
+      clearToken("manage");
     }
+    setLoading(false);
   }, []);
 
   // Fetch managed booking
@@ -85,6 +93,15 @@ export default function ManageBookingPage() {
     e.preventDefault();
     if (!manualToken.trim()) return;
     setToken(manualToken.trim());
+  }
+
+  function handleSignOut() {
+    clearToken("manage");
+    setToken(null);
+    setBooking(null);
+    setManualToken("");
+    setError(null);
+    setActionNotice(null);
   }
 
   async function handleRecoverySubmit(e: React.FormEvent) {
@@ -283,16 +300,27 @@ export default function ManageBookingPage() {
   return (
     <main id="main-content" className="py-12 sm:py-16">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-8">
-        <div>
-          <p className="eyebrow">Patient Self-Service</p>
-          <h1 className="font-serif text-3xl font-medium text-forest sm:text-4xl">
-            Appointment Management Portal
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <p className="eyebrow">Patient Self-Service</p>
+            <h1 className="font-serif text-3xl font-medium text-forest sm:text-4xl">
+              Appointment Management Portal
+            </h1>
+            {booking && (
+              <p className="mt-1 text-sm text-graphite">
+                Welcome back, <strong className="text-forest">{booking.first_name}</strong>. Reference:{" "}
+                <span className="font-mono font-semibold text-forest">{booking.reference}</span>
+              </p>
+            )}
+          </div>
           {booking && (
-            <p className="mt-1 text-sm text-graphite">
-              Welcome back, <strong className="text-forest">{booking.first_name}</strong>. Reference:{" "}
-              <span className="font-mono font-semibold text-forest">{booking.reference}</span>
-            </p>
+            <Button
+              variant="secondary"
+              onClick={handleSignOut}
+              className="text-xs self-start"
+            >
+              Sign Out
+            </Button>
           )}
         </div>
 
