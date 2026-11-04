@@ -55,19 +55,28 @@ export function PractitionerCard({ practitioner }: { practitioner: Practitioner 
 }
 
 export async function PractitionerList() {
+  let practitioners = null;
+  let fetchError: unknown = null;
+
   try {
-    const practitioners = await listPractitioners();
-    if (practitioners.length === 0) {
-      return <p className="text-graphite">Our team will be listed here soon.</p>;
-    }
-    return (
-      <ul className="grid gap-4 sm:grid-cols-2">
-        {practitioners.map((practitioner) => (
-          <PractitionerCard key={practitioner.slug} practitioner={practitioner} />
-        ))}
-      </ul>
-    );
+    practitioners = await listPractitioners();
   } catch (error) {
-    return <ApiUnavailable error={error} what="our specialists" />;
+    fetchError = error;
   }
+
+  if (fetchError || practitioners === null) {
+    return <ApiUnavailable error={fetchError} what="our specialists" />;
+  }
+
+  if (practitioners.length === 0) {
+    return <p className="text-graphite">Our team will be listed here soon.</p>;
+  }
+
+  return (
+    <ul className="grid gap-4 sm:grid-cols-2">
+      {practitioners.map((practitioner) => (
+        <PractitionerCard key={practitioner.slug} practitioner={practitioner} />
+      ))}
+    </ul>
+  );
 }

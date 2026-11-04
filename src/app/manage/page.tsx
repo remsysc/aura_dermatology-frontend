@@ -40,6 +40,7 @@ export default function ManageBookingPage() {
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelSubmitting, setCancelSubmitting] = useState<boolean>(false);
+  const [now] = useState<number>(() => Date.now());
 
   // Consume token on mount
   useEffect(() => {
@@ -318,7 +319,7 @@ export default function ManageBookingPage() {
 
   // Calculate 24-hour notice window for cancellation notice
   const startsAtDate = booking ? new Date(booking.starts_at) : null;
-  const hoursUntilAppointment = startsAtDate ? (startsAtDate.getTime() - Date.now()) / (1000 * 60 * 60) : 0;
+  const hoursUntilAppointment = startsAtDate ? (startsAtDate.getTime() - now) / (1000 * 60 * 60) : 0;
   const isRefundEligible = hoursUntilAppointment >= 24;
 
   return (

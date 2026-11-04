@@ -134,4 +134,76 @@ describe("Booking Island Multi-Step Flow", () => {
     // Verify router redirect to confirmation
     expect(mockPush).toHaveBeenCalledWith("/book/confirmation?ref=AUR-TEST99");
   });
+
+  it("reuses the same idempotency key on submission retry when payload is unchanged, and generates a new key when modified", async () => {
+    const user = userEvent.setup();
+
+    // Mock initial failure (e.g. network timeout)
+    const createBookingSpy = vi
+      .spyOn(endpoints, "createBooking")
+      .mockRejectedValueOnce(new Error("Network connection dropped"))
+      .mockResolvedValueOnce({
+        reference: "AUR-RETRY01",
+        status: "held",
+        hold_expires_at: "2026-11-05T09:15:00+08:00",
+        starts_at: "2026-11-05T09:00:00+08:00",
+        status_token: "mock_status_token",
+        verify_token: null,
+        payment: {
+          required: true,
+          amount_cents: 100000,
+          currency: "PHP",
+          payment_intent_id: "pi_retry",
+          client_key: "client_retry",
+        },
+      } as BookingHold);
+
+    render(
+      <BookingIsland
+        services={mockServices}
+        practitioners={mockPractitioners}
+        initialServiceSlug="initial-consultation"
+      />
+    );
+
+    // Navigate to step 1
+    await user.click(screen.getByRole("button", { name: /Select Date & Time/i }));
+
+    // Select slot and navigate to step 2
+    const slotRadio = await screen.findByRole("radio", { name: /9:00/i });
+    await user.click(slotRadio);
+    await user.click(screen.getByRole("button", { name: /Continue to Details/i }));
+
+    // Fill details and consent
+    await user.type(await screen.findByLabelText(/Full Legal Name/i), "Jose Rizal");
+    await user.type(screen.getByLabelText(/Email Address/i), "jose@example.ph");
+    await user.type(screen.getByLabelText(/Philippine Mobile Number/i), "0918 555 1234");
+    await user.click(screen.getByRole("checkbox"));
+
+    // Navigate to step 3 review
+    await user.click(screen.getByRole("button", { name: /Review & Hold/i }));
+
+    const confirmHoldBtn = await screen.findByRole("button", { name: /Confirm & Hold Slot/i });
+
+    // FIRST ATTEMPT: Fails due to simulated network error
+    await user.click(confirmHoldBtn);
+    expect(createBookingSpy).toHaveBeenCalledTimes(1);
+    const firstKey = createBookingSpy.mock.calls[0][1];
+    expect(typeof firstKey).toBe("string");
+    expect(firstKey.length).toBeGreaterThan(0);
+
+    // Error alert is displayed
+    expect(
+      await screen.findByText(/An unexpected error occurred while locking your reservation/i)
+    ).toBeInTheDocument();
+
+    // SECOND ATTEMPT: Click again without modifying details (safe idempotency replay)
+    await user.click(confirmHoldBtn);
+    expect(createBookingSpy).toHaveBeenCalledTimes(2);
+    const secondKey = createBookingSpy.mock.calls[1][1];
+
+    // Assert that the exact same idempotency key is reused on unchanged retry!
+    expect(secondKey).toBe(firstKey);
+    expect(mockPush).toHaveBeenCalledWith("/book/confirmation?ref=AUR-RETRY01");
+  });
 });

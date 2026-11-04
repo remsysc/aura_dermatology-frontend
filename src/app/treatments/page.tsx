@@ -11,12 +11,20 @@ export const metadata: Metadata = {
 };
 
 async function TreatmentCatalogWrapper() {
+  let services = null;
+  let fetchError: unknown = null;
+
   try {
-    const services = await listServices();
-    return <TreatmentCatalog services={services} />;
+    services = await listServices();
   } catch (error) {
-    return <ApiUnavailable error={error} what="treatments" />;
+    fetchError = error;
   }
+
+  if (fetchError || services === null) {
+    return <ApiUnavailable error={fetchError} what="treatments" />;
+  }
+
+  return <TreatmentCatalog services={services} />;
 }
 
 export default function TreatmentsPage() {
