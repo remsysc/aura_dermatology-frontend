@@ -11,6 +11,9 @@ export const config = {
   /** Canonical public origin, used for the sitemap and robots.txt. */
   siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, ""),
   turnstileSiteKey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
+  /** PayMongo *public* key (pk_...). Safe for the browser; never put the secret key here. */
+  paymongoPublicKey: process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY ?? "",
+  paymongoBaseUrl: "https://api.paymongo.com/v1",
   clinic: {
     name: process.env.NEXT_PUBLIC_CLINIC_NAME ?? "AURA Dermatology & Laser Studio",
     address: process.env.NEXT_PUBLIC_CLINIC_ADDRESS ?? "",

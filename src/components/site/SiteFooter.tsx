@@ -35,6 +35,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link className="underline-offset-4 hover:underline" href="/manage">
+                Manage appointment
+              </Link>
+            </li>
+            <li>
               <Link className="underline-offset-4 hover:underline" href="/privacy">
                 Privacy notice
               </Link>

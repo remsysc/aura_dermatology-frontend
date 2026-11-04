@@ -476,7 +476,7 @@ export default function IntakePage() {
 
               {/* Bot Protection */}
               <div className="pt-2">
-                <TurnstileWidget onVerify={setTurnstileToken} />
+                <TurnstileWidget action="intake" onVerify={setTurnstileToken} />
               </div>
             </div>
 

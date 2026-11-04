@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { config } from "@/lib/config";
 import { Icon } from "./Icon";
 
 export interface TurnstileWidgetProps {
   onVerify: (token: string) => void;
   onExpire?: () => void;
+  action?: string;
+  resetTrigger?: number;
   className?: string;
 }
 
@@ -17,6 +19,7 @@ declare global {
         container: string | HTMLElement,
         options: {
           sitekey: string;
+          action?: string;
           callback: (token: string) => void;
           "expired-callback"?: () => void;
           "error-callback"?: (error: unknown) => void;
@@ -32,18 +35,29 @@ declare global {
 export function TurnstileWidget({
   onVerify,
   onExpire,
+  action,
+  resetTrigger,
   className = "",
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = config.turnstileSiteKey;
-  const [isReady, setIsReady] = useState<boolean>(false);
+
+  // Handle explicit reset requests (e.g. on form submission retry)
+  useEffect(() => {
+    if (resetTrigger && widgetIdRef.current && window.turnstile) {
+      try {
+        window.turnstile.reset(widgetIdRef.current);
+      } catch {
+        // ignore reset errors
+      }
+    }
+  }, [resetTrigger]);
 
   useEffect(() => {
     // If no real site key is configured (local dev / sandbox), auto-verify with bypass token
     if (!siteKey || siteKey.trim() === "") {
       onVerify("turnstile_client_bypass_aura");
-      setIsReady(true);
       return;
     }
 
@@ -59,6 +73,7 @@ export function TurnstileWidget({
       try {
         const id = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
+          action,
           theme: "light",
           callback: (token: string) => {
             onVerify(token);
@@ -72,7 +87,6 @@ export function TurnstileWidget({
           },
         });
         widgetIdRef.current = id;
-        setIsReady(true);
       } catch {
         onVerify("turnstile_client_bypass_aura");
       }
@@ -101,7 +115,7 @@ export function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify, onExpire]);
+  }, [siteKey, action, onVerify, onExpire]);
 
   // If running in development without site key, show verified badge
   if (!siteKey || siteKey.trim() === "") {

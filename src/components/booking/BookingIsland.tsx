@@ -474,7 +474,7 @@ export function BookingIsland({
 
             {/* Cloudflare Turnstile Verification */}
             <div className="pt-2">
-              <TurnstileWidget onVerify={setTurnstileToken} />
+              <TurnstileWidget action="booking" onVerify={setTurnstileToken} />
             </div>
 
             {/* Notice disclosure accordion */}
