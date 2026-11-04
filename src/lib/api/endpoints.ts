@@ -146,3 +146,22 @@ export function requestMagicLink(
     signal,
   });
 }
+
+/** Simulates a successful PayMongo payment in local development / testing environments. */
+export function simulatePayment(
+  reference: string,
+  token: string,
+  method: string = "gcash",
+  signal?: AbortSignal,
+): Promise<{ status: string; reference: string }> {
+  return apiRequest<{ status: string; reference: string }>(
+    `/dev/bookings/${encodeURIComponent(reference)}/simulate-payment`,
+    {
+      method: "POST",
+      body: { method },
+      token,
+      signal,
+    },
+  );
+}
+

@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { formatPesos } from "@/lib/format";
+import { config } from "@/lib/config";
+import { attachPaymentMethod, createPaymentMethod, PaymongoError } from "@/lib/paymongo";
+import { simulatePayment } from "@/lib/api/endpoints";
 
 export interface PayMongoCheckoutProps {
   amountCents: number;
@@ -12,7 +15,11 @@ export interface PayMongoCheckoutProps {
   reference: string;
   clientKey: string | null;
   paymentIntentId: string | null;
+  statusToken?: string | null;
   onPaymentSuccess: () => void;
+  /** Billing name for e-wallet payments (cards use the cardholder name). */
+  patientName?: string;
+  patientEmail?: string;
   className?: string;
 }
 
@@ -24,12 +31,17 @@ export function PayMongoCheckout({
   reference,
   clientKey,
   paymentIntentId,
+  statusToken,
   onPaymentSuccess,
+  patientName = "AURA Patient",
+  patientEmail,
   className = "",
 }: PayMongoCheckoutProps) {
   const [method, setMethod] = useState<PaymentMethod>("gcash");
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isSimulationMode = !config.paymongoPublicKey && process.env.NODE_ENV !== "production";
 
   // Card form state
   const [cardName, setCardName] = useState<string>("");
@@ -38,21 +50,65 @@ export function PayMongoCheckout({
   const [cardCvc, setCardCvc] = useState<string>("");
 
   // E-Wallet form state
-  const [walletPhone, setWalletPhone] = useState<string>("0917 123 4567");
+  const [walletPhone, setWalletPhone] = useState<string>("");
 
   async function handlePay(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage(null);
 
-    // Simulate PayMongo intent attach delay
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+    if (!config.paymongoPublicKey || !paymentIntentId || !clientKey) {
+      if (isSimulationMode && statusToken) {
+        setLoading(true);
+        try {
+          await simulatePayment(reference, statusToken, method === "maya" ? "paymaya" : method);
+          onPaymentSuccess();
+          return;
+        } catch (err) {
+          setErrorMessage(err instanceof Error ? err.message : "Failed to simulate payment in dev sandbox.");
+          return;
+        } finally {
+          setLoading(false);
+        }
+      }
 
-      // Trigger success callback
+      setErrorMessage("Online payment is temporarily unavailable. Please contact the clinic to complete your booking.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const methodId = await createPaymentMethod(
+        config.paymongoPublicKey,
+        method === "maya" ? "paymaya" : method,
+        {
+          name: method === "card" ? cardName : patientName,
+          email: patientEmail,
+          phone: method === "card" ? undefined : walletPhone,
+        },
+        method === "card" ? { number: cardNumber, expiry: cardExpiry, cvc: cardCvc } : undefined,
+      );
+
+      const outcome = await attachPaymentMethod(config.paymongoPublicKey, {
+        paymentIntentId,
+        clientKey,
+        paymentMethodId: methodId,
+        returnUrl: `${window.location.origin}/book/confirmation?ref=${encodeURIComponent(reference)}`,
+      });
+
+      if (outcome.kind === "redirect") {
+        // E-wallet / 3-D Secure authentication happens on the provider's page; the patient
+        // returns to /book/confirmation, which polls until the webhook confirms the booking.
+        window.location.assign(outcome.url);
+        return;
+      }
+
       onPaymentSuccess();
-    } catch {
-      setErrorMessage("Payment authorization failed. Please verify your details or use another method.");
+    } catch (err) {
+      setErrorMessage(
+        err instanceof PaymongoError
+          ? err.message
+          : "Payment authorization failed. Please verify your details or use another method.",
+      );
     } finally {
       setLoading(false);
     }
@@ -71,6 +127,19 @@ export function PayMongoCheckout({
           <span className="text-[10px] text-graphite">{currency} • Credited to treatment</span>
         </div>
       </div>
+
+      {/* Local Dev Sandbox Mode Notice */}
+      {isSimulationMode && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-xs text-amber-900 space-y-1">
+          <div className="flex items-center gap-1.5 font-semibold text-amber-950">
+            <Icon name="shield" className="size-4 text-amber-700" />
+            <span>Local Dev Sandbox (Simulated PayMongo)</span>
+          </div>
+          <p>
+            PayMongo credentials are not configured on localhost. Submitting below will simulate an instant verified {method.toUpperCase()} payment and unlock your medical intake form.
+          </p>
+        </div>
+      )}
 
       {/* Payment Method Selector */}
       <div className="space-y-3">
@@ -152,7 +221,7 @@ export function PayMongoCheckout({
             />
             <p className="text-[11px] text-graphite flex items-center gap-1.5">
               <Icon name="check" className="size-3 text-sage" />
-              PayMongo sandbox testing: Any 09XX number accepts the test transaction.
+              You will be redirected to GCash to approve the payment, then brought back here.
             </p>
           </div>
         )}
@@ -226,7 +295,9 @@ export function PayMongoCheckout({
           loading={loading}
           className="w-full justify-center py-3 text-sm"
         >
-          Pay {formatPesos(amountCents)} Deposit via PayMongo
+          {isSimulationMode
+            ? `Simulate ${formatPesos(amountCents)} Deposit (${method.toUpperCase()})`
+            : `Pay ${formatPesos(amountCents)} Deposit via PayMongo`}
           <Icon name="arrow-right" className="size-4" />
         </Button>
 
