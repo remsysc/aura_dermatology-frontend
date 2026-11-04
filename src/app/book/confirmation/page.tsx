@@ -19,22 +19,17 @@ function ConfirmationContent() {
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref");
 
-  const [session, setSession] = useState<BookingSession | null>(() => {
-    if (!ref || typeof window === "undefined") return null;
-    return loadBookingSession(ref);
-  });
+  const [session, setSession] = useState<BookingSession | null>(null);
   const [status, setStatus] = useState<BookingStatus>("held");
   const [isExpired, setIsExpired] = useState<boolean>(false);
   const [paymentSubmitted, setPaymentSubmitted] = useState<boolean>(false);
 
-  // Ensure session is loaded on client mount if SSR initialized to null
+  // Load session from client-side storage on mount to guarantee SSR-hydration parity
   useEffect(() => {
     if (!ref) return;
     const loaded = loadBookingSession(ref);
     if (loaded) {
-      queueMicrotask(() => {
-        setSession(loaded);
-      });
+      setSession(loaded);
     }
   }, [ref]);
 

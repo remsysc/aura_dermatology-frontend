@@ -44,6 +44,7 @@ export function HoldTimer({ expiresAtIso, onExpired, className = "" }: HoldTimer
       role="timer"
       aria-live="polite"
       aria-label={`Reservation hold remaining time: ${minutes} minutes and ${seconds} seconds`}
+      suppressHydrationWarning
       className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
         isExpired
           ? "border border-red-200 bg-red-50 text-red-800"
@@ -64,7 +65,7 @@ export function HoldTimer({ expiresAtIso, onExpired, className = "" }: HoldTimer
         ) : (
           <span>
             Slot held for{" "}
-            <span className="font-mono font-semibold tracking-wider">{formattedTime}</span>. Complete confirmation before expiration.
+            <span className="font-mono font-semibold tracking-wider" suppressHydrationWarning>{formattedTime}</span>. Complete confirmation before expiration.
           </span>
         )}
       </div>
