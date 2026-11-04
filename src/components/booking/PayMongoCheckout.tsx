@@ -41,7 +41,9 @@ export function PayMongoCheckout({
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isSimulationMode = !config.paymongoPublicKey && process.env.NODE_ENV !== "production";
+  const isSimulationMode =
+    process.env.NEXT_PUBLIC_PAYMONGO_SIMULATE === "true" ||
+    !config.paymongoPublicKey;
 
   // Card form state
   const [cardName, setCardName] = useState<string>("");
@@ -136,7 +138,7 @@ export function PayMongoCheckout({
             <span>Local Dev Sandbox (Simulated PayMongo)</span>
           </div>
           <p>
-            PayMongo credentials are not configured on localhost. Submitting below will simulate an instant verified {method.toUpperCase()} payment and unlock your medical intake form.
+            Operating in developer simulation mode. Submitting below will simulate an instant verified {method.toUpperCase()} payment and unlock your medical intake form.
           </p>
         </div>
       )}
