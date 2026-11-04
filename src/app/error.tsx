@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 
 export default function RootError({
@@ -35,9 +34,9 @@ export default function RootError({
           <Button variant="primary" onClick={() => reset()}>
             Try Again
           </Button>
-          <Button variant="secondary" onClick={() => (window.location.href = "/")}>
+          <ButtonLink href="/" variant="secondary">
             Return to Sanctuary Home
-          </Button>
+          </ButtonLink>
         </div>
 
         <p className="text-xs text-graphite pt-4">

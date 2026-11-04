@@ -36,6 +36,7 @@ export function BookingIsland({
 }: BookingIslandProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<number>(0);
+  const idempotencyTracker = useMemo(() => createIdempotencyTracker(), []);
 
   // Step 0: Service & Practitioner
   const [serviceSlug, setServiceSlug] = useState<string>(() => {
@@ -179,9 +180,10 @@ export function BookingIsland({
     };
 
     try {
-      const idempotencyKey = crypto.randomUUID();
+      const idempotencyKey = idempotencyTracker.keyFor(payload);
 
       const hold = await createBooking(payload, idempotencyKey);
+      idempotencyTracker.reset();
 
       const practitionerLabel = selectedPractitioner
         ? selectedPractitioner.name
