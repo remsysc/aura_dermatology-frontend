@@ -16,27 +16,35 @@ async function BookContent({
 }) {
   const { service, practitioner } = await searchParams;
 
+  let services = null;
+  let practitioners = null;
+  let fetchError: unknown = null;
+
   try {
-    const [services, practitioners] = await Promise.all([
+    [services, practitioners] = await Promise.all([
       listServices(),
       listPractitioners(),
     ]);
-
-    return (
-      <BookingIsland
-        services={services}
-        practitioners={practitioners}
-        initialServiceSlug={service}
-        initialPractitionerSlug={practitioner}
-      />
-    );
   } catch (error) {
+    fetchError = error;
+  }
+
+  if (fetchError || !services || !practitioners) {
     return (
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <ApiUnavailable error={error} what="the booking system" />
+        <ApiUnavailable error={fetchError} what="the booking system" />
       </div>
     );
   }
+
+  return (
+    <BookingIsland
+      services={services}
+      practitioners={practitioners}
+      initialServiceSlug={service}
+      initialPractitionerSlug={practitioner}
+    />
+  );
 }
 
 export default function BookPage(props: {
