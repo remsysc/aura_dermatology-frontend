@@ -113,6 +113,20 @@ export function toApiError(status: number, body: unknown, headers: Headers): Api
     });
   }
 
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "message" in body &&
+    typeof (body as { message: unknown }).message === "string"
+  ) {
+    return new ApiError({
+      status,
+      code: status >= 500 ? "server" : "unknown",
+      message: (body as { message: string }).message,
+      retryAfterSeconds,
+    });
+  }
+
   return new ApiError({
     status,
     code: status >= 500 ? "server" : "unknown",
