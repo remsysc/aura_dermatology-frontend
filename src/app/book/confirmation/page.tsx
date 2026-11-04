@@ -19,17 +19,22 @@ function ConfirmationContent() {
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref");
 
-  const [session, setSession] = useState<BookingSession | null>(null);
+  const [session, setSession] = useState<BookingSession | null>(() => {
+    if (!ref || typeof window === "undefined") return null;
+    return loadBookingSession(ref);
+  });
   const [status, setStatus] = useState<BookingStatus>("held");
-  const [pollingError, setPollingError] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState<boolean>(false);
+  const [paymentSubmitted, setPaymentSubmitted] = useState<boolean>(false);
 
-  // Load session from sessionStorage
+  // Ensure session is loaded on client mount if SSR initialized to null
   useEffect(() => {
     if (!ref) return;
     const loaded = loadBookingSession(ref);
     if (loaded) {
-      setSession(loaded);
+      queueMicrotask(() => {
+        setSession(loaded);
+      });
     }
   }, [ref]);
 
@@ -43,9 +48,8 @@ function ConfirmationContent() {
         const res = await getBookingStatus(ref, session.statusToken);
         if (!active) return;
         setStatus(res.status);
-      } catch (err) {
-        if (!active) return;
-        setPollingError("Live synchronization paused. Retrying...");
+      } catch {
+        // network jitter during polling is expected; next interval will retry
       }
     }, 3500);
 
@@ -214,7 +218,7 @@ function ConfirmationContent() {
         )}
 
         {/* PayMongo Checkout Integration */}
-        {!isConfirmed && !isExpired && session && session.payment.required && (
+        {!isConfirmed && !isExpired && session && session.payment.required && !paymentSubmitted && (
           <div className="pt-2">
             <PayMongoCheckout
               amountCents={session.payment.amount_cents}
@@ -222,11 +226,20 @@ function ConfirmationContent() {
               reference={session.reference}
               clientKey={session.payment.client_key}
               paymentIntentId={session.payment.payment_intent_id}
+              statusToken={session.statusToken}
               onPaymentSuccess={() => {
-                setStatus("confirmed");
+                // The signed PayMongo webhook is the source of truth: keep polling until the
+                // API reports the booking as confirmed instead of trusting the client result.
+                setPaymentSubmitted(true);
               }}
             />
           </div>
+        )}
+
+        {!isConfirmed && !isExpired && paymentSubmitted && (
+          <Alert tone="info" title="Confirming your payment">
+            Your payment was submitted. This page updates automatically as soon as the clinic receives confirmation from PayMongo.
+          </Alert>
         )}
 
         {/* Polling Notice for zero-deposit or already submitted payments */}
@@ -284,14 +297,12 @@ function ConfirmationContent() {
         <Link href="/" className="hover:text-forest transition-colors">
           Return to Home
         </Link>
-        {session && (
-          <Link
-            href={`/manage#t=${encodeURIComponent(session.statusToken)}`}
-            className="hover:text-forest underline transition-colors"
-          >
-            Manage this appointment
-          </Link>
-        )}
+        <Link
+          href="/manage"
+          className="hover:text-forest underline transition-colors"
+        >
+          Manage appointments
+        </Link>
       </div>
     </div>
   );
