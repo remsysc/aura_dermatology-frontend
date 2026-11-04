@@ -91,8 +91,18 @@ export default function ManageBookingPage() {
 
   function handleManualTokenSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!manualToken.trim()) return;
-    setToken(manualToken.trim());
+    const raw = manualToken.trim();
+    if (!raw) return;
+
+    // Support pasting the full magic link URL (e.g. https://.../manage#t=abc) or raw token
+    if (raw.includes("#t=")) {
+      const extracted = parseFragmentToken(raw.slice(raw.indexOf("#")));
+      if (extracted) {
+        setToken(extracted);
+        return;
+      }
+    }
+    setToken(raw);
   }
 
   function handleSignOut() {
@@ -222,7 +232,7 @@ export default function ManageBookingPage() {
     }
   }
 
-  // Token Prompt view
+  // Token Prompt / Lookup view
   if (!token && !loading) {
     return (
       <main id="main-content" className="py-16">
@@ -233,31 +243,16 @@ export default function ManageBookingPage() {
             </div>
             <h1 className="font-serif text-3xl font-medium text-forest">Manage Your Appointment</h1>
             <p className="mt-2 text-sm text-graphite">
-              Click the management link sent to your email, or enter your token below to access self-service rescheduling and cancellation.
+              For your privacy, appointment management links are sent directly to your email.
             </p>
           </div>
 
-          <form onSubmit={handleManualTokenSubmit} className="rounded-3xl border hairline bg-paper p-6 sm:p-8 shadow-soft space-y-4">
-            <TextField
-              id="manage-token"
-              label="Management Access Token"
-              hint="Check your email confirmation for the direct magic link."
-              required
-              value={manualToken}
-              onChange={(e) => setManualToken(e.target.value)}
-              placeholder="e.g. 64-character token"
-            />
-            <Button type="submit" variant="primary" className="w-full justify-center">
-              Access Appointment
-              <Icon name="arrow-right" className="size-4" />
-            </Button>
-          </form>
-
+          {/* Primary Action: Look up by Booking Reference & Email */}
           <form onSubmit={handleRecoverySubmit} className="rounded-3xl border hairline bg-paper p-6 sm:p-8 shadow-soft space-y-4">
             <div>
-              <h2 className="font-serif text-xl font-medium text-forest">Lost your link?</h2>
+              <h2 className="font-serif text-xl font-medium text-forest">Look Up Your Appointment</h2>
               <p className="mt-1 text-xs text-graphite">
-                Enter your booking reference and the email or mobile number you booked with. If they match an upcoming confirmed appointment, we will email you a fresh link.
+                Enter your booking reference and contact details. We will immediately email you a secure link to reschedule or cancel.
               </p>
             </div>
             <TextField
@@ -266,7 +261,7 @@ export default function ManageBookingPage() {
               required
               value={recoveryReference}
               onChange={(e) => setRecoveryReference(e.target.value)}
-              placeholder="AUR-XXXXX"
+              placeholder="e.g. AUR-XXXXX"
               autoComplete="off"
             />
             <TextField
@@ -275,7 +270,7 @@ export default function ManageBookingPage() {
               required
               value={recoveryContact}
               onChange={(e) => setRecoveryContact(e.target.value)}
-              placeholder="you@example.com or +639171234567"
+              placeholder="e.g. you@example.com or +639171234567"
               autoComplete="off"
             />
             {recoveryNotice && (
@@ -283,10 +278,39 @@ export default function ManageBookingPage() {
                 {recoveryNotice.message}
               </Alert>
             )}
-            <Button type="submit" variant="secondary" loading={recoverySubmitting} className="w-full justify-center">
-              Email Me a New Link
+            <Button type="submit" variant="primary" loading={recoverySubmitting} className="w-full justify-center">
+              Email Me My Access Link
+              <Icon name="arrow-right" className="size-4" />
             </Button>
           </form>
+
+          {/* Secondary Action: Direct Link or Token Entry */}
+          <form onSubmit={handleManualTokenSubmit} className="rounded-3xl border hairline bg-paper/60 p-6 sm:p-8 shadow-soft space-y-4">
+            <div>
+              <h2 className="font-serif text-lg font-medium text-forest">Have an Access Link or Token?</h2>
+              <p className="mt-1 text-xs text-graphite">
+                If you copied the link from your confirmation email, paste the full URL or access token below to sign in directly.
+              </p>
+            </div>
+            <TextField
+              id="manage-token"
+              label="Paste Magic Link or Token"
+              hint="You can paste the entire link from your email or just the token."
+              required
+              value={manualToken}
+              onChange={(e) => setManualToken(e.target.value)}
+              placeholder="https://.../manage#t=... or access token"
+            />
+            <Button type="submit" variant="secondary" className="w-full justify-center">
+              Access Appointment Directly
+            </Button>
+          </form>
+
+          <div className="pt-2 text-center">
+            <Link href="/" className="text-xs text-graphite hover:text-forest underline">
+              Return to AURA Home
+            </Link>
+          </div>
         </div>
       </main>
     );
